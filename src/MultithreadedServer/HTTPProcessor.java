@@ -1,11 +1,6 @@
 package MultithreadedServer;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.awt.image.WritableRaster;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,38 +8,39 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import javax.imageio.ImageIO;
-
 public class HTTPProcessor {
-
 	/**
 	 * @param args
 	 */
 	public static String rootDir;
 	public static String userDir; 
 
-	public static String process(String request, String root, String user){
+	public static byte[]  process(String request, String root, String user){
 		rootDir = root;
 		userDir = user;
 		String[] requestArray = request.split(" ");
 		if(requestArray.length < 4) {
-			return BadRequestResponse();
+			return BadRequestResponse().getBytes();
 		}
 		String relativePath = requestArray[2];
 
-		if(HTTPProcessor.getMIME(relativePath).equals("image/jpeg")){
+		if(HTTPProcessor.getMIME(relativePath).equals("image/jpeg") || HTTPProcessor.getMIME(relativePath).equals("image/gif")){
 			//HTTPProcessor.imageHandler(request, rootDir, userDir, out, new BufferedOutputStream(clientSocket.getOutputStream()));
-			return PageNotFoundResponse();
+			try {
+				return imageHandler(relativePath);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				return PageNotFoundResponse().getBytes();
+				
+			}
 		}
 		return requestHandler(request);
 	}
-	public static String requestHandler(String request){
+	public static byte[] requestHandler(String request){
 		String[] requestArray = request.split(" ");
 		String requestType;
 		String relativePath = requestArray[2];;
@@ -54,7 +50,7 @@ public class HTTPProcessor {
 			relativePath = requestArray[2];
 			requestType = "HEAD";
 		}else{
-			return BadRequestResponse();
+			return BadRequestResponse().getBytes();
 		}
 		//System.out.println(relativePath);
 		//To add a index.html if the path is a directory
@@ -71,11 +67,11 @@ public class HTTPProcessor {
 			in.close();
 		} catch (IOException e) {
 			System.out.println(relativePath+ ":file reader problem");
-			return PageNotFoundResponse();
+			return PageNotFoundResponse().getBytes();
 		}
 		String output =requestType.equals("GET")?  headerGenerator(relativePath, content)+content: headerGenerator(relativePath, content);
 
-		return output;
+		return output.getBytes();
 
 	}
 
@@ -141,8 +137,10 @@ public class HTTPProcessor {
 				}
 			} catch (IOException e) {
 				System.err.println("cannot read in image!");
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return BadRequestResponse().getBytes();
+				// TODO Auto-generated catch block
+				
 			}
 			return ous.toByteArray();
 		} finally { 
@@ -160,26 +158,16 @@ public class HTTPProcessor {
 		}
 
 	}
-	public static void imageHandler(String request, String rootDir2, String userDir2, PrintWriter out, OutputStream outStream) throws FileNotFoundException{
-		String[] requestArray = request.split(" ");
-		String relativePath = requestArray[2];
+	public static byte[] imageHandler(String relativePath) throws FileNotFoundException{
 		byte[] imgByte = imageToByte(relativePath);
-		String output =  "HTTP/1.1 200 OK \r\n"
+		String header =  "HTTP/1.1 200 OK \r\n"
 				+ getDateString()+ "\r\n"
 				+ "Content-Type:"+ getMIME(relativePath)+"\r\n"
 				+ "Content-Length:"+imgByte.length+ "\r\n\r\n";
-		//System.out.println(output);
-		out.println(output);
-		System.out.println(output);
-		out.flush();
-		try {
-			outStream.write(imgByte, 0, imgByte.length);
-			outStream.flush();
-		} catch (IOException e) {
-			System.err.println("image failed output");
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		byte[] response = new byte[header.getBytes().length + imgByte.length];
+		System.arraycopy(header.getBytes(), 0, response, 0, header.getBytes().length);
+		System.arraycopy(imgByte, 0, response, header.getBytes().length, imgByte.length);
+		return response;
 	}
 
 	public static String BadRequestResponse(){
@@ -208,9 +196,9 @@ public class HTTPProcessor {
 		return simpleDateFormat.format(date);
 	}
 	public static void main(String[] args) {
-		//System.out.println(reformatPath("/~leffinger/cat.jpg"));
-		//System.out.println(reformatPath("/~leffinger/"));
-		//System.out.println(reformatPath("/courses/"));
+		System.out.println(reformatPath("/~leffinger/cat.jpg"));
+		System.out.println(reformatPath("/~leffinger/"));
+		System.out.println(reformatPath("/courses/"));
 
 
 	}

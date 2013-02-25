@@ -43,18 +43,21 @@ public class ServerThread extends Thread {
 	public void run(){
 
 		try {
+			OutputStream raw_out = clientSocket.getOutputStream();
 			out = new PrintWriter(clientSocket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
-			String inputLine, outputLine;
+			
+			String inputLine;
+			byte[] outputLine;
 			String request = "";
 			while ( (inputLine = in.readLine()) != null) {
 				if(inputLine.isEmpty()){
 					//System.out.println(request);
 					//Handle image specially
 					outputLine = HTTPProcessor.process(request, rootDir, userDir);
-					out.println(outputLine);
-					out.flush();
+					raw_out.write(outputLine);
+					//out.println(outputLine);
 					request = "";
 				}else{
 					request = request + " "+ inputLine;
