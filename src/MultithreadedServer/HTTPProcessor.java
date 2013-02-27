@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -16,18 +18,36 @@ public class HTTPProcessor {
 	/**
 	 * @param args
 	 */
-	public static String rootDir;
-	public static String userDir; 
+	//root directory
+	public  static String rootDir;
+	//user directory 
+	public  String userDir; 
+	//the host name
+	public  String hostName; 
+	//the request client is making 
+	public 	String request;
+	public HTTPProcessor(String request, String root, String user){
+		//Constructor method
+		setDir(root);
+		this.userDir = user;
+		this.request = request;
+	}
 
-	public static byte[]  process(String request, String root, String user){
-		rootDir = root;
-		userDir = user;
+	public  byte[]  process(){
+		//this is the method call to process the request once a new HTTPProcessor is initiated.
+		try {
+			hostName =InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e1) {
+			System.err.println("Unknow Host");
+		}
 		String[] requestArray = request.split(" ");
 		if(requestArray.length < 4) {
 			return BadRequestResponse().getBytes();
 		}
 		String relativePath = requestArray[2];
-
+//		if(isUserDir(relativePath)){
+//			return PageMovedResponse(relativePath).getBytes();
+//		}
 		if(HTTPProcessor.getMIME(relativePath).equals("image/jpeg") || HTTPProcessor.getMIME(relativePath).equals("image/gif")){
 			//HTTPProcessor.imageHandler(request, rootDir, userDir, out, new BufferedOutputStream(clientSocket.getOutputStream()));
 			try {
@@ -40,7 +60,8 @@ public class HTTPProcessor {
 		}
 		return requestHandler(request);
 	}
-	public static byte[] requestHandler(String request){
+	public  byte[] requestHandler(String request){
+		//This is the request handler to all the request except the image and gif class. 
 		String[] requestArray = request.split(" ");
 		String requestType;
 		String relativePath = requestArray[2];;
@@ -76,6 +97,7 @@ public class HTTPProcessor {
 	}
 
 	public static String reformatPath(String relativePath){
+		//This method is to reformat the relative path so that it is server friendly to be used. 
 		if (relativePath.endsWith("/")) relativePath = relativePath+ "index.html";
 		if(isUserDir(relativePath)){
 			int start = relativePath.indexOf("~");
@@ -87,12 +109,14 @@ public class HTTPProcessor {
 		return relativePath;
 	}
 	public static boolean isUserDir(String relativePath){
+		//This method checks if we should use the userDir or rootDir 
 		if(relativePath.startsWith("/~")){
 			return true;
 		}
 		return false;
 	}
 	public static String headerGenerator(String relativePath, String content){
+		//This method generates the header of a response for a valid request. 
 		String output =   "HTTP/1.1 200 OK \r\n"
 				+ getDateString()+ "\r\n"
 				+ "Content-Type:"+ getMIME(relativePath)+"\r\n"
@@ -101,6 +125,7 @@ public class HTTPProcessor {
 	}
 
 	public static String getMIME(String str){
+		//This method gets the MIME according to the extension. 
 		if(str.endsWith("/")) return "text/html";
 		String extension = str.substring(str.lastIndexOf(".")+1);
 		switch (extension){
@@ -122,8 +147,9 @@ public class HTTPProcessor {
 		return "error";
 	}
 
-	public static byte[] imageToByte (String relativePath) throws FileNotFoundException{
-		File file = new File(rootDir+ relativePath);
+	public  byte[] imageToByte (String relativePath, String dir) throws FileNotFoundException{
+		//This method converts images to byte arrays. 
+		File file =  new File(dir+ relativePath);
 		InputStream ios = new FileInputStream(file);
 		ByteArrayOutputStream ous = new ByteArrayOutputStream();
 
@@ -158,8 +184,10 @@ public class HTTPProcessor {
 		}
 
 	}
-	public static byte[] imageHandler(String relativePath) throws FileNotFoundException{
-		byte[] imgByte = imageToByte(relativePath);
+	public  byte[] imageHandler(String relativePath) throws FileNotFoundException{
+		//This method handles the image request. 
+		String dir = isUserDir(relativePath)? userDir: rootDir;
+		byte[] imgByte = imageToByte(relativePath, dir);
 		String header =  "HTTP/1.1 200 OK \r\n"
 				+ getDateString()+ "\r\n"
 				+ "Content-Type:"+ getMIME(relativePath)+"\r\n"
@@ -171,6 +199,7 @@ public class HTTPProcessor {
 	}
 
 	public static String BadRequestResponse(){
+		//This method generates the response for bad request
 		System.out.println("bad request");
 		String message = "Page Not Found!";
 		return "HTTP/1.1 400 Bad Request \r\n"
@@ -180,6 +209,7 @@ public class HTTPProcessor {
 		+ message+ "\r\n\r\n";
 	}
 	public static String PageNotFoundResponse(){
+		//This method generates the response for files that are not found. 
 		System.out.println("file not found");
 		String message = "Page Not Found!";
 		return "HTTP/1.1 404 Not Found \r\n"
@@ -188,12 +218,21 @@ public class HTTPProcessor {
 		+ "Content-Length:"+message.length()+ "\r\n\r\n"
 		+ message+ "\r\n\r\n";
 	}
-
+//	public  String PageMovedResponse(String relativePath){
+//		relativePath = reformatPath(relativePath);
+//		return "HTTP/1.1 301 Moved Permanently\r\n"+
+//	"Location: http://"+ hostName +":" +"8888"+ userDir+ relativePath+ "\r\n";
+//	}
 	public static String getDateString(){
+		//This method gets the data string for the current time in the appropriate format. 
 		Date date = new Date();
 		SimpleDateFormat simpleDateFormat =
 				new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
 		return simpleDateFormat.format(date);
+	}
+	public static synchronized void  setDir(String root){
+		//This is a synchronized method to set the rootDirectory. 
+		rootDir = root;
 	}
 	public static void main(String[] args) {
 		System.out.println(reformatPath("/~leffinger/cat.jpg"));

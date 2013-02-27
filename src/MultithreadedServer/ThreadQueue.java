@@ -15,10 +15,11 @@ public class ThreadQueue extends ConcurrentLinkedQueue<ServerThread> {
 		this.max = maxSize;
 	}
 	public synchronized boolean Enqueue(ServerThread t){
+		//Add a new thread to the queue. 
 		if (count == max){
 			this.poll().KillYourSelf();
 			count = count-1;
-			System.out.println("the server is full, killed the oldest thread");
+			//System.out.println("the server is full, killed the oldest thread");
 		}
 		this.add(t);
 		count = count + 1;
@@ -26,6 +27,7 @@ public class ThreadQueue extends ConcurrentLinkedQueue<ServerThread> {
 		return true;
 	}
 	public synchronized boolean Dequeue(){
+		//Dequeue the thread. 
 		count = count -1;
 		this.poll();
 		return true;	

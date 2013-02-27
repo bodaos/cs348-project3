@@ -7,7 +7,7 @@ import java.io.*;
 public class ServerThread extends Thread {
 
 	/**
-	 * @param args
+	 * This is the thread that spawns everytime when a new socket is connected to the server. 
 	 */
 	public Socket clientSocket; 
 	public ThreadQueue threadQueue;
@@ -22,7 +22,7 @@ public class ServerThread extends Thread {
 		this.userDir = userDir;
 	}
 	public void KillYourSelf(){
-
+		//This is the method to kill a thread and do the clean up. 
 		try {
 			//System.out.println("I killed myself");
 			clientSocket.close();
@@ -41,7 +41,7 @@ public class ServerThread extends Thread {
 		Thread.yield();
 	}
 	public void run(){
-
+		//This is the main step to process the request using the HTTPProcessor class
 		try {
 			OutputStream raw_out = clientSocket.getOutputStream();
 			out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -55,7 +55,8 @@ public class ServerThread extends Thread {
 				if(inputLine.isEmpty()){
 					//System.out.println(request);
 					//Handle image specially
-					outputLine = HTTPProcessor.process(request, rootDir, userDir);
+					HTTPProcessor processor = new HTTPProcessor(request, rootDir, userDir);
+					outputLine = processor.process();
 					raw_out.write(outputLine);
 					//out.println(outputLine);
 					request = "";
@@ -67,11 +68,12 @@ public class ServerThread extends Thread {
 
 
 		}catch(SocketException e){
-			System.out.println("socket closed");
+			//System.out.println("socket closed");
 			
 		}
 		catch (IOException e) {
-			System.err.println("IOexception in Server thread");
+			System.err.println("IOException in Server thread");
+			this.KillYourSelf();
 		} 
 	}
 	public static void main(String[] args) {

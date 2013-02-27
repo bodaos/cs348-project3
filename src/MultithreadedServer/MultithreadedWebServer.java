@@ -5,6 +5,7 @@ import java.net.*;
 import java.io.*;
 
 public class MultithreadedWebServer {
+	//This is the main class of the webserver 
 	public static void main(String[] args) throws IOException {
 		
 		String computername=InetAddress.getLocalHost().getHostName();
@@ -17,9 +18,9 @@ public class MultithreadedWebServer {
 		 
 		ServerSocket serverSocket = null;
 		try {
-			serverSocket = new ServerSocket(4444);
+			serverSocket = new ServerSocket(8888);
 		} catch (IOException e) {
-			System.err.println("Could not listen on port: 4444.");
+			System.err.println("Could not listen on port: 8888.");
 			System.exit(1);
 		}
 		ThreadQueue threadQueue = new ThreadQueue(maxConnection);
